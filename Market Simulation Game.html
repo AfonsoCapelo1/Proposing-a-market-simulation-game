@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Market Simulation Game</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+    
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+    
+        h2 {
+            color: #2980b9;
+            margin-bottom: 10px;
+        }
+    
+        .stock-container {
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+    
+        .stock-name {
+            font-weight: bold;
+            font-size: 18px;
+            color: #27ae60;
+        }
+    
+        .button-container {
+            margin-top: 10px;
+            text-align: center;
+        }
+    
+        button {
+            margin-right: 5px;
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #2980b9;
+            color: white;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+    
+        button:hover {
+            background-color: #3498db;
+            transform: scale(1.05);
+        }
+    
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+    
+        #balance-container {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-top: 20px;
+            color: #8e44ad;
+            text-align: center;
+        }
+    
+        #eventInfo {
+            font-size: 1.2em;
+            margin-top: 15px;
+            text-align: center;
+            color: #c0392b;
+        }
+    
+        #instructions-container {
+            background-color: #ecf0f1;
+            border: 1px solid #bdc3c7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+    
+    
+</head>
+<body>
+
+<h1>Stock Market Simulation Game</h1>
+
+<div id="instructions-container">
+    <h2>Game Instructions</h2>
+    <p>Welcome to the Stock Market Simulation Game!</p>
+    <p>Your goal is to buy and sell stocks based on market events. Manage your balance wisely to maximize your final score!</p>
+    <p>Click "Next Time Iteration" to update stock prices and see how events impact your stocks.</p>
+    <p>Use the "Buy" and "Sell" buttons to manage your stocks.</p>
+    <p>Click "End Game" to see your final score.</p>
+    <div class="button-container">
+        <button id="startGameButton">Start Game</button>
+    </div>
+</div>
+
+<div id="game-container" style="display: none;">
+    <div id="balance-container">Balance: $<span id="balance">1000.00</span></div>
+    <div id="eventInfo">Event: None</div>
+
+    <div class="stock-container" id="stockA">
+        <div class="stock-name">Tech Corporation Stocks</div>
+        <div>Price: $<span id="stockA_price">100.00</span></div>
+        <div>Quantity: <span id="stockA_quantity">0</span></div>
+        <div class="button-container">
+            <button onclick="stocks[0].buy()">Buy</button>
+            <button onclick="stocks[0].sell()">Sell</button>
+        </div>
+    </div>
+
+    <div class="stock-container" id="stockB">
+        <div class="stock-name">Green Energy Stocks</div>
+        <div>Price: $<span id="stockB_price">100.00</span></div>
+        <div>Quantity: <span id="stockB_quantity">0</span></div>
+        <div class="button-container">
+            <button onclick="stocks[1].buy()">Buy</button>
+            <button onclick="stocks[1].sell()">Sell</button>
+        </div>
+    </div>
+
+    <div class="button-container">
+        <button id="nextIterationButton">Next Time Iteration</button>
+        <button id="endGameButton">End Game</button>
+    </div>
+</div>
+
+<script>
+    class Event {
+    constructor(name, impact) {
+        this.name = name;
+        this.impact = impact;
+    }
+}
+
+class Stock {
+    constructor(name, initPrice, quantity, beta, delta, keys_list, NIP) {
+        this.name = name;
+        this.price = initPrice; // Set initial price
+        this.quantity = quantity;
+        this.beta = beta;
+        this.delta = delta;
+        this.keys_list = keys_list;
+        this.NIP = NIP; // Precomputed prices for each iteration
+        this.currentIndex = 0; // Start from the first event
+    }
+
+    updatePrice() {
+        if (this.currentIndex < this.NIP.length) {
+            this.price = this.NIP[this.currentIndex]; // Set current price from precomputed values
+            const eventKey = this.keys_list[this.currentIndex];
+            document.getElementById('eventInfo').textContent = `Event: ${eventKey} occurred`;
+            this.currentIndex++; // Move to the next iteration
+        }
+    }
+
+    buy() {
+        if (player.balance >= this.price) {
+            player.balance -= this.price;
+            this.quantity++;
+            updateQuantities(); // Update quantity display after buying
+            updateBalance();
+        } else {
+            alert('Insufficient balance to buy this stock.');
+        }
+    }
+
+    sell() {
+        if (this.quantity > 0) {
+            player.balance += this.price;
+            this.quantity--;
+            updateQuantities(); // Update quantity display after selling
+            updateBalance();
+        } else {
+            alert('You do not own any of this stock to sell.');
+        }
+    }
+}
+
+class Player {
+    constructor(balance) {
+        this.balance = balance;
+    }
+}
+
+// Update quantities in HTML
+function updateQuantities() {
+    document.getElementById('stockA_quantity').textContent = stocks[0].quantity;
+    document.getElementById('stockB_quantity').textContent = stocks[1].quantity;
+}
+
+// Time steps parameters
+let n = 1000;
+let delta_t = 1 / n;
+
+// Random events
+function generateNumbers() {
+    let numbers = [];
+    let previousNumber = null;
+
+    for (let i = 0; i < 1000; i++) {
+        let newNumber;
+
+        // Ensure the new number is different from the previous one
+        do {
+            newNumber = Math.random() < 0.15 
+                ? 13 
+                : Math.random() < 2 / 3 
+                    ? [1, 3, 5, 7, 9, 11][Math.floor(Math.random() * 6)] 
+                    : [2, 4, 6, 8, 10, 12][Math.floor(Math.random() * 6)];
+        } while (newNumber === previousNumber);
+
+        numbers.push(newNumber);
+        previousNumber = newNumber;  // Update the last generated number
+    }
+
+    return numbers;
+}
+
+
+let events = generateNumbers();
+
+let events_dict = {
+    'Product Breakthrough': 5, 'New Product Line': 10, 'Increased Competition': -5, 'Tech Patent Dispute': -10, 
+    'New International Renewable Energy Deal': 5, 'Government Subsidy for Renewable Energy': 10, 'Environmental Regulations Tightened': -5, 'Energy Price Collapse': -10, 
+    'Economic Recovery': 5, 'Global Technology and Sustainability Partnership': 10, 'Supply Chain Collapse': -5, 'Global Recession': -10, 'Neutral Economic Data Release': 0
+};
+let eventDescriptions = {
+    'Product Breakthrough': 'Tech Innovations Inc. develops a revolutionary product',
+    'New Product Line': 'Tech Innovations Inc. launches a popular new product line',
+    'Government Subsidy for Renewable Energy': 'The government provides subsidies to renewable energy firms',
+    'New International Renewable Energy Deal': 'Green Energy Corp. signs a lucrative international deal',
+    'Tech Patent Dispute': 'Tech Innovations Inc. faces a legal battle over patent rights',
+    'Increased Competition': 'New competitors enter the tech market',
+    'Energy Price Collapse': 'Renewable energy prices drop',
+    'Environmental Regulations Tightened': 'Stricter regulations increase operational costs for Green Energy Corp',
+    'Global Technology and Sustainability Partnership': 'Major tech and energy companies announce a collaboration',
+    'Economic Recovery': 'The economy shows signs of recovery',
+    'Global Recession': 'Warnings of a global recession',
+    'Supply Chain Collapse': 'A supply chain crisis affects production costs and timelines',
+    'Neutral Economic Data Release': 'New economic data shows no significant changes'
+};
+
+
+let keys_list = Object.keys(events_dict);
+
+function getEventNames(events, eventsDict) {
+    const eventNames = Object.keys(eventsDict);
+    return events.map(number => eventNames[number - 1]);
+}
+
+const eventNamesList = getEventNames(events, events_dict);
+
+// Inverse Gaussian Process function
+function IG(a, b) {
+    let v = Math.random();
+    let y = v ** 2;
+    let x = (a / b) + (y / (2 * b ** 2)) - Math.sqrt((4 * a * b * y + y ** 2) / (2 * b ** 2));
+    let u = Math.random();
+
+    if (u <= a / (a + x * b)) {
+        return x;
+    } else {
+        return a ** 2 / ((b ** 2) * x);
+    }
+}
+
+function IG_Process(n, delta_t, a, b) {
+    let I = new Array(n + 1).fill(0);
+    for (let i = 1; i <= n; i++) {
+        let ig_random = IG(a * delta_t, b);
+        I[i] = I[i - 1] + ig_random;
+    }
+    return I;
+}
+
+// Parameters for the IG process
+let a_ig = 1;
+let b_ig = 20;
+
+// Generate the IG process
+let IGP = IG_Process(n, delta_t, a_ig, b_ig);
+
+// Multiply function to apply event impact
+function multiply(number) {
+    return 1 + number / 100;
+}
+
+// NIG Process for Stock A
+function NIG_Process_a(init_stock_price, n, delta_t, beta, delta, IGP) {
+    let X = new Array(n + 1).fill(init_stock_price);
+    X[0] = init_stock_price;
+
+    for (let i = 1; i <= n; i++) {
+        let v = Math.random();
+        let sqrt_diff = Math.sqrt(Math.max(IGP[i] - IGP[i - 1], 0));
+        X[i] = X[i - 1] + beta * delta ** 2 * (IGP[i] - IGP[i - 1]) + delta * sqrt_diff * v;
+
+        if ([1, 2, 3, 4, 9,10,11, 12].includes(events[i - 1])) {
+            let b = events[i - 1];
+            X[i] *= multiply(events_dict[keys_list[b - 1]]);
+        } else {
+            X[i] += (X[i] * ((Math.random() * 0.025) - 0.0125));
+        }
+    }
+    X[1] = init_stock_price;
+    return X;
+}
+
+// NIG Process for Stock B
+function NIG_Process_b(init_stock_price, n, delta_t, beta, delta, IGP) {
+    let X = new Array(n + 1).fill(init_stock_price);
+    X[0] = init_stock_price;
+
+    for (let i = 1; i <= n; i++) {
+        let v = Math.random();
+        let sqrt_diff = Math.sqrt(Math.max(IGP[i] - IGP[i - 1], 0));
+        X[i] = X[i - 1] + beta * (delta * 2) * (IGP[i] - IGP[i - 1]) + delta * sqrt_diff * v;
+
+        if ([5,6, 7, 8, 9, 10, 11, 12].includes(events[i - 1])) {
+            let b = events[i - 1];
+            X[i] *= multiply(events_dict[keys_list[b - 1]]);
+        } else {
+            X[i] += (X[i] * ((Math.random() * 0.025) - 0.0125));
+        }
+    }
+    X[1] = init_stock_price;
+    return X;
+}
+
+// Parameters for Stock A and B
+let init_stock_price_a = 100;
+let beta_a = -10;
+let delta_a = 1;
+let a_NIG_a = 1;
+let b_NIG_a = delta_a * Math.sqrt(50 ** 2 - beta_a ** 2);
+
+let NIP_a = NIG_Process_a(init_stock_price_a, n, delta_t, beta_a, delta_a, IGP);
+
+let init_stock_price_b = 100;
+let beta_b = -10;
+let delta_b = 1;
+let a_NIG_b = 1;
+let b_NIG_b = delta_b * Math.sqrt(50 ** 2 - beta_b ** 2);
+
+let NIP_b = NIG_Process_b(init_stock_price_b, n, delta_t, beta_b, delta_b, IGP);
+
+// Initialize the player and stocks with precomputed NIP values
+let player = new Player(1000);
+let stock1 = new Stock("Tech Corporation Stocks", init_stock_price_a, 0, beta_a, delta_a, eventNamesList, NIP_a);
+let stock2 = new Stock("Green Energy Stocks", init_stock_price_b, 0, beta_b, delta_b, eventNamesList, NIP_b);
+let stocks = [stock1, stock2];
+
+// Apply the first event impact before starting the updates
+stocks.forEach(stock => stock.updatePrice());
+
+// Function to update prices and display current stock prices and events
+function updatePrices() {
+    stocks.forEach((stock, index) => {
+        stock.updatePrice();
+        document.getElementById(`stock${String.fromCharCode(65 + index)}_price`).textContent = stock.price.toFixed(2);
+    });
+    const currentEventIndex = stocks[0].currentIndex - 1;  // Adjust index for correct event
+    const eventKey = eventNamesList[currentEventIndex];
+    const eventDescription = eventDescriptions[eventKey];
+
+    // Display event name and description
+    document.getElementById('eventInfo').innerHTML = `Event: <strong>${eventKey}</strong><br>Description: ${eventDescription}`;
+}
+
+// Update balance in HTML
+function updateBalance() {
+    document.getElementById('balance').textContent = player.balance.toFixed(2);
+}
+
+// End Game Functionality
+function endGame() {
+    let finalScore = player.balance + (stocks[0].quantity * stocks[0].price) + (stocks[1].quantity * stocks[1].price);
+    alert(`Thank you for playing this game! Your final score is $${finalScore.toFixed(2)}`);
+    
+    // Disable all buttons after the end game alert
+    const buttons = document.querySelectorAll('button');
+    buttons.forEach(button => {
+        button.disabled = true; // Disable the button
+    });
+}
+
+// Add event listener for the "Next Time Iteration" button
+document.getElementById('nextIterationButton').addEventListener('click', () => {
+    updatePrices(); // Update stock prices
+});
+
+// Add event listener for the "End Game" button
+document.getElementById('endGameButton').addEventListener('click', endGame);
+
+// Initial update for stock prices and player balance
+updatePrices();
+updateBalance();
+
+
+
+    // Add event listener for the "Start Game" button
+    document.getElementById('startGameButton').addEventListener('click', () => {
+        // Hide the instructions
+        document.getElementById('instructions-container').style.display = 'none';
+        // Show the game container
+        document.getElementById('game-container').style.display = 'block';
+    });
+
+    // Initial setup: hide the game container
+    document.getElementById('game-container').style.display = 'none';
+
+    // Add event listener for the "End Game" button
+    document.getElementById('endGameButton').addEventListener('click', () => {
+        const stock1Value = stocks[0].quantity * stocks[0].price;
+        const stock2Value = stocks[1].quantity * stocks[1].price;
+        const finalScore = player.balance + stock1Value + stock2Value;
+        alert(`Thank you for playing this game! Your final score is $${finalScore.toFixed(2)}`);
+    });
+</script>
+
+</body>
+</html>
